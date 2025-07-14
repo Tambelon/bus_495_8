@@ -1,52 +1,91 @@
-// Get references to the HTML elements
-const chatForm = document.getElementById('chatForm');
-const userInput = document.getElementById('userInput');
-const responseContainer = document.getElementById('response');
+/* DOM elements */
+const chatForm = document.getElementById("chatForm");
+const userInput = document.getElementById("userInput");
+const chatWindow = document.getElementById("chatWindow");
 
-// REPLACE with your actual Cloudflare Worker URL
-const workerUrl = 'https://broken-frog.happydylan2.workers.dev';
+// Set initial message
+chatWindow.innerHTML = "<div class='chat-message bot-message'>👋 Hello! How can I help you today?</div>";
 
-// Add event listener to the form
-chatForm.addEventListener('submit', async (event) => {
-  event.preventDefault(); // Prevent the form from submitting the traditional way
-  responseContainer.textContent = 'Thinking...'; // Display a loading message
-
-  // Add the user's message to the conversation history
-  messages.push({ role: 'user', content: userInput.value });
-
+/* Handle form submit */
+chatForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  
+  const message = userInput.value.trim();
+  if (!message) return;
+  
+  // Add user message to chat
+  addMessageToChat(message, 'user');
+  
+  // Clear input
+  userInput.value = '';
+  
+  // Show loading indicator
+  const loadingId = showLoadingIndicator();
+  
   try {
-    // Send a POST request to your Cloudflare Worker
-    const response = await fetch(workerUrl, {
+    // Send message to Cloudflare worker (which will proxy to OpenAI)
+    const response = await fetch('https://broken-frog.happydylan2.workers.dev', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        messages: messages,
-      }),
+        message: message
+      })
     });
-
-    // Check if the response is not ok
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`API request failed with status ${response.status}`);
     }
-
-    // Parse JSON response from the Cloudflare Worker
-    const result = await response.json();
-
-    // Get the reply from OpenAI's response structure
-    const replyText = result.choices[0].message.content;
-
-    // Add the Worker's response to the conversation history
-    messages.push({ role: 'assistant', content: replyText });
-
-    // Display the response on the page
-    responseContainer.textContent = replyText;
+    
+    const data = await response.json();
+    
+    // Remove loading indicator
+    removeLoadingIndicator(loadingId);
+    
+    // Add bot response to chat
+    if (data.reply) {
+      addMessageToChat(data.reply, 'bot');
+    } else {
+      throw new Error('No reply in response');
+    }
   } catch (error) {
-    console.error('Error:', error); // Log the error
-    responseContainer.textContent = 'Sorry, something went wrong. Please try again later.'; // Show error message to the user
+    // Remove loading indicator
+    removeLoadingIndicator(loadingId);
+    
+    // Show error message
+    addMessageToChat(`Sorry, I encountered an error: ${error.message}`, 'bot');
+    console.error('Chat error:', error);
   }
-
-  // Clear the input field
-  userInput.value = '';
 });
+
+// Helper function to add a message to the chat
+function addMessageToChat(message, sender) {
+  const messageElement = document.createElement('div');
+  messageElement.classList.add('chat-message', `${sender}-message`);
+  messageElement.textContent = message;
+  chatWindow.appendChild(messageElement);
+  
+  // Scroll to bottom
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Helper function to show loading indicator
+function showLoadingIndicator() {
+  const id = 'loading-' + Date.now();
+  const loadingElement = document.createElement('div');
+  loadingElement.id = id;
+  loadingElement.classList.add('chat-message', 'bot-message', 'loading');
+  loadingElement.textContent = '...';
+  chatWindow.appendChild(loadingElement);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+  return id;
+}
+
+// Helper function to remove loading indicator
+function removeLoadingIndicator(id) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.remove();
+  }
+}
