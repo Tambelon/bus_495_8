@@ -4,34 +4,33 @@ const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
 
 // Set initial message
-chatWindow.innerHTML = "<div class='bot-message'>👋 Hello! How can I help you today?</div>";
+chatWindow.innerHTML = "<div class='chat-message bot-message'>👋 Hello! How can I help you today?</div>";
 
 /* Handle form submit */
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   
-  // Get and trim user input
   const message = userInput.value.trim();
   if (!message) return;
   
   // Add user message to chat
   addMessageToChat(message, 'user');
   
-  // Clear input field
+  // Clear input
   userInput.value = '';
   
+  // Show loading indicator
+  const loadingId = showLoadingIndicator();
+  
   try {
-    // Show typing indicator
-    const typingIndicator = addTypingIndicator();
-    
-    // Send message to OpenAI via Cloudflare worker
+    // Send message to Cloudflare worker (which will proxy to OpenAI)
     const response = await fetch('https://broken-frog.happydylan2.workers.dev/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        messages: [{role: "user", content: message}]
+        message: message
       })
     });
     
@@ -41,36 +40,52 @@ chatForm.addEventListener("submit", async (e) => {
     
     const data = await response.json();
     
-    // Remove typing indicator and add bot response
-    chatWindow.removeChild(typingIndicator);
-    if (data.choices && data.choices[0].message.content) {
-      addMessageToChat(data.choices[0].message.content, 'bot');
-    } else {
-      throw new Error('Invalid response format from API');
-    }
+    // Remove loading indicator
+    removeLoadingIndicator(loadingId);
     
+    // Add bot response to chat
+    if (data.reply) {
+      addMessageToChat(data.reply, 'bot');
+    } else {
+      throw new Error('No reply in response');
+    }
   } catch (error) {
-    console.error('Error:', error);
-    addMessageToChat("Sorry, I encountered an error. Please try again later.", 'bot');
+    // Remove loading indicator
+    removeLoadingIndicator(loadingId);
+    
+    // Show error message
+    addMessageToChat(`Sorry, I encountered an error: ${error.message}`, 'bot');
+    console.error('Chat error:', error);
   }
 });
 
 // Helper function to add a message to the chat
 function addMessageToChat(message, sender) {
-  const messageDiv = document.createElement('div');
-  messageDiv.classList.add(`${sender}-message`);
-  messageDiv.textContent = message;
-  chatWindow.appendChild(messageDiv);
+  const messageElement = document.createElement('div');
+  messageElement.classList.add('chat-message', `${sender}-message`);
+  messageElement.textContent = message;
+  chatWindow.appendChild(messageElement);
+  
+  // Scroll to bottom
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// Helper function to add typing indicator
-function addTypingIndicator() {
-  const typingDiv = document.createElement('div');
-  typingDiv.classList.add('bot-message');
-  typingDiv.textContent = '...';
-  typingDiv.id = 'typing-indicator';
-  chatWindow.appendChild(typingDiv);
+// Helper function to show loading indicator
+function showLoadingIndicator() {
+  const id = 'loading-' + Date.now();
+  const loadingElement = document.createElement('div');
+  loadingElement.id = id;
+  loadingElement.classList.add('chat-message', 'bot-message', 'loading');
+  loadingElement.textContent = '...';
+  chatWindow.appendChild(loadingElement);
   chatWindow.scrollTop = chatWindow.scrollHeight;
-  return typingDiv;
+  return id;
+}
+
+// Helper function to remove loading indicator
+function removeLoadingIndicator(id) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.remove();
+  }
 }
