@@ -21,10 +21,12 @@ chatForm.addEventListener("submit", async (e) => {
   
   // Show loading indicator
   const loadingId = showLoadingIndicator();
+
+  const workerURL = 'https://broken-frog.happydylan2.workers.dev';
   
   try {
     // Send message to Cloudflare worker (which will proxy to OpenAI)
-    const response = await fetch('https://broken-frog.happydylan2.workers.dev', {
+    const response = await fetch(workerURL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
