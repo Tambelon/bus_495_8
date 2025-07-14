@@ -3,63 +3,74 @@ const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
 
-// Cloudflare Worker endpoint
-const CLOUDFLARE_WORKER_URL = "https://broken-frog.happydylan2.workers.dev/";
-
 // Set initial message
-chatWindow.innerHTML = "<div class='chat-message bot-message'>👋 Hello! How can I help you today?</div>";
+chatWindow.innerHTML = "<div class='bot-message'>👋 Hello! How can I help you today?</div>";
 
 /* Handle form submit */
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   
+  // Get and trim user input
   const message = userInput.value.trim();
   if (!message) return;
   
   // Add user message to chat
-  chatWindow.innerHTML += `<div class='chat-message user-message'>You: ${message}</div>`;
+  addMessageToChat(message, 'user');
+  
+  // Clear input field
   userInput.value = '';
   
-  // Show typing indicator
-  const typingIndicator = document.createElement('div');
-  typingIndicator.className = 'chat-message bot-message typing';
-  typingIndicator.textContent = 'AI is typing...';
-  chatWindow.appendChild(typingIndicator);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
-  
   try {
-    // Call Cloudflare Worker endpoint
-    const response = await fetch(CLOUDFLARE_WORKER_URL, {
+    // Show typing indicator
+    const typingIndicator = addTypingIndicator();
+    
+    // Send message to OpenAI via Cloudflare worker
+    const response = await fetch('https://broken-frog.happydylan2.workers.dev/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: message,  // Simplified format for Worker
-        model: 'gpt-3.5-turbo'  // Optional: specify model
+        messages: [{role: "user", content: message}]
       })
     });
     
     if (!response.ok) {
-      throw new Error(`Network response was not ok: ${response.status}`);
+      throw new Error(`API request failed with status ${response.status}`);
     }
     
     const data = await response.json();
     
-    // Remove typing indicator
+    // Remove typing indicator and add bot response
     chatWindow.removeChild(typingIndicator);
-    
-    // Add bot response to chat
-    if (data.response) {
-      chatWindow.innerHTML += `<div class='chat-message bot-message'>AI: ${data.response}</div>`;
+    if (data.choices && data.choices[0].message.content) {
+      addMessageToChat(data.choices[0].message.content, 'bot');
     } else {
-      chatWindow.innerHTML += `<div class='chat-message bot-message error'>Error: No response from AI</div>`;
+      throw new Error('Invalid response format from API');
     }
+    
   } catch (error) {
     console.error('Error:', error);
-    chatWindow.removeChild(typingIndicator);
-    chatWindow.innerHTML += `<div class='chat-message bot-message error'>Error: ${error.message}</div>`;
+    addMessageToChat("Sorry, I encountered an error. Please try again later.", 'bot');
   }
-  
-  chatWindow.scrollTop = chatWindow.scrollHeight;
 });
+
+// Helper function to add a message to the chat
+function addMessageToChat(message, sender) {
+  const messageDiv = document.createElement('div');
+  messageDiv.classList.add(`${sender}-message`);
+  messageDiv.textContent = message;
+  chatWindow.appendChild(messageDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Helper function to add typing indicator
+function addTypingIndicator() {
+  const typingDiv = document.createElement('div');
+  typingDiv.classList.add('bot-message');
+  typingDiv.textContent = '...';
+  typingDiv.id = 'typing-indicator';
+  chatWindow.appendChild(typingDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+  return typingDiv;
+}
