@@ -11,6 +11,7 @@ body {
   color: #333;
   display: flex;
   justify-content: center;
+  background-color: white;
 }
 
 .page-wrapper {
@@ -28,6 +29,7 @@ body {
   font-size: 22px;
   font-weight: 500;
   margin-bottom: 10px;
+  color: #CB0706; /* hot rod red */
 }
 
 /* chat window */
@@ -37,12 +39,12 @@ body {
 
 .chat-window {
   height: 360px;
-  border: 1px solid #000;
+  border: 2px solid #000;
   padding: 20px;
   font-size: 18px;
   line-height: 1.5;
   overflow-y: auto;
-  background: #fafafa;
+  background: white;
   white-space: pre-line;
 }
 
@@ -54,10 +56,13 @@ body {
 
 .msg.user {
   color: #000;
+  font-weight: 500;
 }
 
 .msg.ai {
-  color: #666666;
+  color: #333;
+  border-left: 3px solid #FFD700; /* gold */
+  padding-left: 10px;
 }
 
 /* input row */
@@ -70,19 +75,19 @@ body {
 .chat-form input {
   flex: 1;
   padding: 12px;
-  border: 1px solid #ccc;
+  border: 2px solid #000;
   font-size: 18px;
 }
 
 .chat-form input:focus {
-  outline: 2px solid #000;
+  outline: 2px solid #FFD700; /* gold */
   outline-offset: 2px;
 }
 
 .chat-form button {
   font-size: 18px;
-  background: #000;
-  color: #fff;
+  background: #CB0706; /* hot rod red */
+  color: white;
   border: none;
   padding: 12px;
   width: 48px;
@@ -99,11 +104,11 @@ body {
 }
 
 .chat-form button:hover {
-  background: #666666;
+  background: #990000; /* darker red */
 }
 
 .chat-form button:focus {
-  outline: 2px solid #000;
+  outline: 2px solid #FFD700; /* gold */
   outline-offset: 2px;
 }
 
@@ -134,10 +139,12 @@ body {
 
 .site-footer a {
   margin: 0 8px;
-  color: #000;
+  color: #CB0706; /* hot rod red */
   text-decoration: none;
+  font-weight: 500;
 }
 
 .site-footer a:hover {
-  color: #666666;
+  color: #990000; /* darker red */
+  text-decoration: underline;
 }
