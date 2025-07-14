@@ -25,12 +25,11 @@ chatForm.addEventListener("submit", async (e) => {
   chatWindow.scrollTop = chatWindow.scrollHeight;
   
   try {
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Cloudflare Worker which will proxy to OpenAI API
+    const response = await fetch('https://broken-frog.happydylan2.workers.dev/', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
@@ -41,6 +40,10 @@ chatForm.addEventListener("submit", async (e) => {
         temperature: 0.7
       })
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     
     const data = await response.json();
     
@@ -57,7 +60,7 @@ chatForm.addEventListener("submit", async (e) => {
   } catch (error) {
     console.error('Error:', error);
     chatWindow.removeChild(typingIndicator);
-    chatWindow.innerHTML += `<div class='chat-message bot-message error'>An error occurred. Please check your connection and try again.</div>`;
+    chatWindow.innerHTML += `<div class='chat-message bot-message error'>An error occurred: ${error.message}</div>`;
   }
   
   chatWindow.scrollTop = chatWindow.scrollHeight;
